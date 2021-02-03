@@ -20,6 +20,7 @@ public class GameBoard extends JFrame implements MouseListener {
     private Piece currentPick;
     private int numberOfSafeZones = 8;
     private int numberOfImpassableTerritories = 5;
+    private int currentPositionX, currentPositionY, babaYagaRow, babaYagaCol, lastPositionX, lastPositionY;
 
     public GameBoard(){
         this.gameBoard = new Piece[NUMBER_OF_SIDE_TILES][NUMBER_OF_SIDE_TILES];
@@ -35,14 +36,28 @@ public class GameBoard extends JFrame implements MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        int countOfClicks = e.getClickCount();
         int x = e.getX() / 100;
         int y = (e.getY() - 30)/ 100;
+        currentPositionX = x;
+        currentPositionY = y;
 
-        currentPick = gameBoard [x][y];
+        while (isBoardPieceUnexploredTerritory(currentPositionX, currentPositionY)){
+                Random rand = new Random();
+                int randomNumber = rand.nextInt(5);
+                if(randomNumber == 3){
+                    currentPick = new ImpassableTerritory(currentPositionX, currentPositionY);
+                }
+                else {
+                    currentPick = new VisitedTiles(currentPositionX, currentPositionY);
+                }
+                gameBoard[currentPositionX][currentPositionY] = currentPick;
+                break;
+        }
+
+        //При следващия commit ще съм направил метод, който да изкарва модален прозорец, при откриване на Баба Яга
+        if (currentPositionX == babaYagaRow && currentPositionY == babaYagaCol) System.out.println("Откри ме");
+
         this.repaint();
-
-        System.out.println(countOfClicks);
     }
 
     @Override
@@ -74,8 +89,19 @@ public class GameBoard extends JFrame implements MouseListener {
                     gameBoard [row][col] = new UnexploredTerritory(row, col);
                     renderGamePiece(g, row, col);
                 }
+                /*
+                if(gameBoard[currentPositionX][currentPositionY] != null && isPositionYouClickedRight(currentPositionX, currentPositionY)){
+                    if((currentPositionX >= 1 && 6 <= currentPositionX) && (currentPositionY >= 1 && 6 <= currentPositionY)){
+                        gameBoard[currentPositionX + 1][currentPositionY].drawingXOnTiles(g);
+                        gameBoard[currentPositionX - 1][currentPositionY].drawingXOnTiles(g);
+                        gameBoard[currentPositionX][currentPositionY + 1].drawingXOnTiles(g);
+                        gameBoard[currentPositionX][currentPositionY - 1].drawingXOnTiles(g);
+                    }
+                }
+                 */
             }
         }
+        gameBoard[3][4].drawingQuestionMarkOnTiles(g);
     }
 
     private void startingPosition(){
@@ -90,10 +116,15 @@ public class GameBoard extends JFrame implements MouseListener {
 
     private void safeZonesPosition(){
         int row, col;
+        int positionOfBabaYaga = rand.nextInt(numberOfSafeZones);
         while(numberOfSafeZones != 0){
             row = rand.nextInt(8);
             col = rand.nextInt(8);
 
+            if(positionOfBabaYaga == numberOfSafeZones){
+                babaYagaRow = row;
+                babaYagaCol = col;
+            }
             if(gameBoard[row][col] == null){
                 gameBoard[row][col] = new SafeZone(row, col);
                 numberOfSafeZones--;
@@ -137,7 +168,30 @@ public class GameBoard extends JFrame implements MouseListener {
         return getBoardPiece(row, col).getClass().getSimpleName().equals("VisitedTiles");
     }
 
+    private boolean isBoardPieceSafeZone(int row, int col){
+        return getBoardPiece(row, col).getClass().getSimpleName().equals("SafeZone");
+    }
+
+    private boolean isBoardPieceImpassableTerritory(int row, int col){
+        return getBoardPiece(row, col).getClass().getSimpleName().equals("ImpassableTerritory");
+    }
+
+    private boolean isBoardPieceUnexploredTerritory(int row, int col){
+        return getBoardPiece(row, col).getClass().getSimpleName().equals("UnexploredTerritory");
+    }
+
     private boolean isPositionYouClickedRight(int row, int col){
         return isBoardPieceStartingPosition(row, col) || isBoardPieceVisitedTile(row, col);
+    }
+
+    //TODO: Да се довърши!
+    private void youCantMoveAnymore(int row, int col){
+        boolean isRowInTheBoard = (row >= 0 && 8 > row);
+        boolean isColInTheBoard = (col >= 0 && 8 > col);
+        boolean positioningIsInTheBoard = isRowInTheBoard && isColInTheBoard;
+    }
+
+    private void positionsYouCanGoTo(int row, int col){
+
     }
 }

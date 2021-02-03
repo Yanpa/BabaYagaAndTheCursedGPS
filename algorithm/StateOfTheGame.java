@@ -1,6 +1,7 @@
 package algorithm;
 
 import board.GameBoard;
+import pieces.StartingCoordinate;
 
 public class StateOfTheGame {
     public StateOfTheGame(){
@@ -17,7 +18,7 @@ public class StateOfTheGame {
     }
 
     private void drawingStingsOnTheNeighbourTiles(int row, int col){
-        //GameBoard.gameBoard[row][col]
+
     }
 
 
