@@ -11,17 +11,17 @@ import java.util.Random;
 public class GameBoard extends JFrame implements MouseListener {
     public final int NUMBER_OF_SIDE_TILES = 8;
     Random rand = new Random();
-    SafeZone safeZone;
-    ImpassableTerritory impassableTerritory;
-    StartingCoordinate startingCoordinate;
-    UnexploredTerritory unexploredTerritory;
 
     public static Piece[][] gameBoard;
     private Piece currentPick;
     private int numberOfSafeZones = 8;
     private int numberOfImpassableTerritories = 5;
-    private int currentPositionX, currentPositionY, babaYagaRow, babaYagaCol, lastPositionX, lastPositionY;
+    private int currentPositionX, currentPositionY, babaYagaRow, babaYagaCol;
+    private boolean youClickedYellowishTile, youClickedRedTile, youClickedGreenTile;
 
+    /**
+     * Constructor that creates the window for the game to be played
+     */
     public GameBoard(){
         this.gameBoard = new Piece[NUMBER_OF_SIDE_TILES][NUMBER_OF_SIDE_TILES];
         this.startingPosition();
@@ -41,24 +41,24 @@ public class GameBoard extends JFrame implements MouseListener {
         currentPositionX = x;
         currentPositionY = y;
 
-        while (isBoardPieceUnexploredTerritory(currentPositionX, currentPositionY)){
-                Random rand = new Random();
-                int randomNumber = rand.nextInt(5);
-                if(randomNumber == 3){
-                    currentPick = new ImpassableTerritory(currentPositionX, currentPositionY);
-                }
-                else {
-                    currentPick = new VisitedTiles(currentPositionX, currentPositionY);
-                }
-                gameBoard[currentPositionX][currentPositionY] = currentPick;
-                break;
+        youClickedYellowishTile = isPositionYouClickedYellowish(currentPositionX, currentPositionY);
+        youClickedRedTile = isBoardPieceUnexploredTerritory(currentPositionX, currentPositionY);
+        youClickedGreenTile = isBoardPieceSafeZone(currentPositionX, currentPositionY);
+
+        if (currentPositionX == babaYagaRow && currentPositionY == babaYagaCol) {
+            Modal modal = new Modal(this, "Winner Winner Chicken Dinner", "Откри баба Яга и вече си свободен");
         }
 
-        //При следващия commit ще съм направил метод, който да изкарва модален прозорец, при откриване на Баба Яга
-        if (currentPositionX == babaYagaRow && currentPositionY == babaYagaCol) System.out.println("Откри ме");
-
+        boolean endOfTheGame = youCantMoveAnymore();
+        if(endOfTheGame){
+            Modal modal = new Modal("Losing streak", "Сблъска се с непреодолима пречка", this);
+            if(Modal.isClicked){
+                new GameBoard();
+            }
+        }
         this.repaint();
     }
+
 
     @Override
     public void mousePressed(MouseEvent e) {
@@ -80,6 +80,10 @@ public class GameBoard extends JFrame implements MouseListener {
 
     }
 
+    /**
+     * Painting the whole board
+     * @param g
+     */
     @Override
     public void paint(Graphics g){
         for(int row = 0; row < NUMBER_OF_SIDE_TILES; row++){
@@ -89,21 +93,26 @@ public class GameBoard extends JFrame implements MouseListener {
                     gameBoard [row][col] = new UnexploredTerritory(row, col);
                     renderGamePiece(g, row, col);
                 }
-                /*
-                if(gameBoard[currentPositionX][currentPositionY] != null && isPositionYouClickedRight(currentPositionX, currentPositionY)){
-                    if((currentPositionX >= 1 && 6 <= currentPositionX) && (currentPositionY >= 1 && 6 <= currentPositionY)){
-                        gameBoard[currentPositionX + 1][currentPositionY].drawingXOnTiles(g);
-                        gameBoard[currentPositionX - 1][currentPositionY].drawingXOnTiles(g);
-                        gameBoard[currentPositionX][currentPositionY + 1].drawingXOnTiles(g);
-                        gameBoard[currentPositionX][currentPositionY - 1].drawingXOnTiles(g);
-                    }
-                }
-                 */
             }
         }
-        gameBoard[3][4].drawingQuestionMarkOnTiles(g);
+        if(youClickedYellowishTile) {
+            positionsYouCanGoTo(g, currentPositionX, currentPositionY);
+        }
+        else if (currentPositionX != babaYagaRow && currentPositionY != babaYagaCol){
+            twentyPercentChanceToBeStuck(currentPositionX, currentPositionY);
+        }
+        if(youClickedGreenTile || youClickedRedTile) {
+            gameBoard[currentPositionX][currentPositionY].drawingQuestionMarkOnTiles(g);
+            gameBoard[currentPositionX][currentPositionY].questionMarkIsDrawn = true;
+            if(gameBoard[currentPositionX][currentPositionY].questionMarkIsDrawn){
+                twentyPercentChanceToBeStuck(currentPositionX, currentPositionY);
+            }
+        }
     }
 
+    /**
+     * Creating the starting position in one of the four corners
+     */
     private void startingPosition(){
         int row = rand.nextInt(2);
         int col = rand.nextInt(2);
@@ -114,6 +123,9 @@ public class GameBoard extends JFrame implements MouseListener {
         gameBoard[row][col] = new StartingCoordinate(row, col);
     }
 
+    /**
+     * Creating and putting all the safe zones, as well babaYaga on the board on random positions
+     */
     private void safeZonesPosition(){
         int row, col;
         int positionOfBabaYaga = rand.nextInt(numberOfSafeZones);
@@ -132,6 +144,9 @@ public class GameBoard extends JFrame implements MouseListener {
         }
     }
 
+    /**
+     * Creating and putting all the blue tiles on random
+     */
     private void impassableTerritoriesPosition(){
         int row, col;
         while (numberOfImpassableTerritories != 0){
@@ -142,6 +157,27 @@ public class GameBoard extends JFrame implements MouseListener {
                 gameBoard[row][col] = new ImpassableTerritory(row, col);
                 numberOfImpassableTerritories--;
             }
+        }
+    }
+
+    /**
+     * Giving the 20% chance to create an Impassable territory
+     * @param row
+     * @param col
+     */
+    private void twentyPercentChanceToBeStuck(int row, int col){
+        while ((youClickedRedTile || youClickedGreenTile) && gameBoard[row][col].questionMarkIsDrawn){
+            Random rand = new Random();
+            int randomNumber = rand.nextInt(5);
+            if(randomNumber == 3){
+                currentPick = new ImpassableTerritory(row, col);
+            }
+            else {
+                currentPick = new VisitedTiles(row, col);
+            }
+            gameBoard[row][col] = currentPick;
+            gameBoard[row][col].questionMarkIsDrawn = false;
+            break;
         }
     }
 
@@ -160,6 +196,12 @@ public class GameBoard extends JFrame implements MouseListener {
         }
     }
 
+    /**
+     * The next 6 methods share the same property and it's that the identify the class, by the given name
+     * @param row
+     * @param col
+     * @return
+     */
     private boolean isBoardPieceStartingPosition(int row, int col){
         return getBoardPiece(row, col).getClass().getSimpleName().equals("StartingCoordinate");
     }
@@ -180,18 +222,72 @@ public class GameBoard extends JFrame implements MouseListener {
         return getBoardPiece(row, col).getClass().getSimpleName().equals("UnexploredTerritory");
     }
 
-    private boolean isPositionYouClickedRight(int row, int col){
+    private boolean isPositionYouClickedYellowish(int row, int col){
         return isBoardPieceStartingPosition(row, col) || isBoardPieceVisitedTile(row, col);
     }
 
-    //TODO: Да се довърши!
-    private void youCantMoveAnymore(int row, int col){
-        boolean isRowInTheBoard = (row >= 0 && 8 > row);
-        boolean isColInTheBoard = (col >= 0 && 8 > col);
-        boolean positioningIsInTheBoard = isRowInTheBoard && isColInTheBoard;
+    /**
+     * Takes the clicked tile and shows the user the possible moves he can make marking them with an "X"
+     * @param g Graphics
+     * @param row current row
+     * @param col current col
+     */
+    private void positionsYouCanGoTo(Graphics g, int row, int col){
+        boolean thereIsTerritoryDown = (row + 1 < 8);
+        boolean thereIsTerritoryUp = (row - 1 >= 0);
+        boolean thereIsTerritoryRight = (col + 1 < 8);
+        boolean thereIsTerritoryLeft = (col - 1 >= 0);
+        if(thereIsTerritoryDown && (isBoardPieceUnexploredTerritory(row + 1, col) || isBoardPieceSafeZone(row + 1, col))){
+            gameBoard[row + 1][col].drawingXOnTiles(g);
+        }
+        if(thereIsTerritoryLeft && (isBoardPieceUnexploredTerritory(row, col - 1) || isBoardPieceSafeZone(row, col - 1))){
+            gameBoard[row][col - 1].drawingXOnTiles(g);
+        }
+        if(thereIsTerritoryUp && (isBoardPieceUnexploredTerritory(row - 1, col) || isBoardPieceSafeZone(row - 1, col))){
+            gameBoard[row - 1][col].drawingXOnTiles(g);
+        }
+        if(thereIsTerritoryRight && (isBoardPieceUnexploredTerritory(row, col + 1) || isBoardPieceSafeZone(row, col + 1))){
+            gameBoard[row][col + 1].drawingXOnTiles(g);
+        }
     }
 
-    private void positionsYouCanGoTo(int row, int col){
+    /**
+     * This massive method runs tru the whole game board to see if there is more possible moves to be done
+     * @return Value of true or false so the program knows when the game is over
+     */
+    private boolean youCantMoveAnymore(){
+        int countOfYellowTiles = 0, countOfImmovableYellowTiles = 0;
+        for(int row = 0; row < 8; row++){
+            for(int col = 0; col < 8; col++){
+                boolean thereIsTerritoryDown = (row + 1 < 8);
+                boolean thereIsTerritoryUp = (row - 1 >= 0);
+                boolean thereIsTerritoryRight = (col + 1 < 8);
+                boolean thereIsTerritoryLeft = (col - 1 >= 0);
+                boolean territoryDownIsImpassable = thereIsTerritoryDown && (isBoardPieceImpassableTerritory(row + 1, col) || isPositionYouClickedYellowish(row + 1, col));
+                boolean territoryLeftIsImpassable = thereIsTerritoryLeft && (isBoardPieceImpassableTerritory(row, col - 1) || isPositionYouClickedYellowish(row, col - 1));
+                boolean territoryUpIsImpassable = thereIsTerritoryUp && (isBoardPieceImpassableTerritory(row - 1, col) || isPositionYouClickedYellowish(row - 1, col));
+                boolean territoryRightIsImpassable = thereIsTerritoryRight && (isBoardPieceImpassableTerritory(row, col + 1) || isPositionYouClickedYellowish(row, col + 1));
 
+                if(isPositionYouClickedYellowish(row, col)){
+                    countOfYellowTiles++;
+                }
+                if(isPositionYouClickedYellowish(row, col) && !((row == 0) || (col == 0)) && territoryDownIsImpassable && territoryLeftIsImpassable && territoryUpIsImpassable && territoryRightIsImpassable){
+                    countOfImmovableYellowTiles++;
+                }
+                if(row == 0 && territoryDownIsImpassable && territoryLeftIsImpassable && territoryRightIsImpassable){
+                    countOfImmovableYellowTiles++;
+                }
+                if(col == 0 && territoryDownIsImpassable && territoryRightIsImpassable && territoryUpIsImpassable){
+                    countOfImmovableYellowTiles++;
+                }
+                if(row == 7 && territoryLeftIsImpassable && territoryUpIsImpassable && territoryRightIsImpassable){
+                    countOfImmovableYellowTiles++;
+                }
+                if(col == 7 && territoryDownIsImpassable && territoryLeftIsImpassable && territoryUpIsImpassable){
+                    countOfImmovableYellowTiles++;
+                }
+            }
+        }
+        return countOfYellowTiles == countOfImmovableYellowTiles;
     }
 }

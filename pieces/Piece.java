@@ -10,11 +10,18 @@ public abstract class Piece {
     private Color currentColor;
     int x;
     int y;
+    public boolean questionMarkIsDrawn;
 
     public Piece(){
 
     }
 
+    /**
+     * Constructor that creates peace based on x and y coordinates, also setting the color of the tile
+     * @param x
+     * @param y
+     * @param color
+     */
     public Piece(int x, int y, Color color){
         this.xCoordinate = x;
         this.yCoordinate = y;
@@ -24,6 +31,10 @@ public abstract class Piece {
         this.y = yCoordinate * TILE_SIDE_SIZE;
     }
 
+    /**
+     * Simply rendering the piece
+     * @param g
+     */
     public void renderPiece(Graphics g){
         g.setColor(currentColor);
         g.fillRect(x, y + UPPER_BAR_SIZE, TILE_SIDE_SIZE, TILE_SIDE_SIZE);
@@ -32,6 +43,10 @@ public abstract class Piece {
         g.drawRect(x, y + UPPER_BAR_SIZE, TILE_SIDE_SIZE, TILE_SIDE_SIZE);
     }
 
+    /**
+     * Drawing a "X" symbol on the tile
+     * @param g
+     */
     public void drawingXOnTiles(Graphics g){
         g.setColor(Color.BLUE);
         g.setFont(g.getFont().deriveFont(42f));
@@ -39,6 +54,10 @@ public abstract class Piece {
         g.drawString("X", x + 35, y + UPPER_BAR_SIZE + 60);
     }
 
+    /**
+     * Drawing a "?" on the tile and changing its color so you know its the chosen one
+     * @param g
+     */
     public void drawingQuestionMarkOnTiles(Graphics g){
         g.setFont(g.getFont().deriveFont(42f));
         this.currentColor = new Color(239, 228, 156, 255);
